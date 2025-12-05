@@ -4,34 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PyStudio Pro - Python IDE</title>
-    
-    <!-- CodeMirror -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
-    
-    <!-- Marked for Markdown -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    
     <style>
         :root {
             --bg-primary: #0d1117;
             --bg-secondary: #161b22;
             --bg-tertiary: #21262d;
-            --bg-hover: #30363d;
             --border-color: #30363d;
             --text-primary: #e6edf3;
             --text-secondary: #8b949e;
             --accent-blue: #58a6ff;
             --accent-green: #3fb950;
-            --accent-orange: #d29922;
             --accent-red: #f85149;
+            --accent-yellow: #d29922;
             --accent-purple: #a371f7;
         }
 
@@ -42,24 +28,427 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
         }
 
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            height: 56px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-yellow);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.ready {
+            background: var(--accent-green);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .tab-bar {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Editor Panel */
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+
+        .btn-danger {
+            background: var(--accent-red);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #da3633;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 14px;
+        }
+
+        /* Console Panel */
+        .console-panel {
+            width: 45%;
+            min-width: 350px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+        }
+
+        .console-output {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .console-line {
+            margin: 2px 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .console-line.info { color: var(--accent-blue); }
+        .console-line.success { color: var(--accent-green); }
+        .console-line.error { color: var(--accent-red); }
+        .console-line.warning { color: var(--accent-yellow); }
+
+        .console-input-container {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .console-prompt {
+            color: var(--accent-green);
+            margin-right: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .console-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            outline: none;
+        }
+
+        /* Pygame Panel */
+        .pygame-panel {
+            display: flex;
+            flex-direction: column;
+            width: 45%;
+            min-width: 350px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            position: relative;
+            padding: 20px;
+        }
+
+        #gameCanvas {
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            image-rendering: pixelated;
+        }
+
+        .fps-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            background: rgba(0,0,0,0.7);
+            color: var(--accent-green);
+            font-size: 12px;
+            font-family: monospace;
+            border-radius: 4px;
+        }
+
+        .pygame-console {
+            height: 150px;
+            overflow-y: auto;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-color);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        /* Asset Manager */
+        .asset-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .asset-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .asset-item img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
+        .asset-item .remove-asset {
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 2px;
+        }
+
+        .asset-item .remove-asset:hover {
+            color: var(--accent-red);
+        }
+
+        /* AI Chat Panel */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .message {
+            max-width: 85%;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            background: var(--accent-blue);
+            color: #fff;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            background: var(--bg-tertiary);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message pre {
+            background: var(--bg-primary);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .message code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .chat-input-container {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            resize: none;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent-blue);
+        }
+
         /* Loading Overlay */
         .loading-overlay {
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: var(--bg-primary);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
-            transition: opacity 0.5s ease;
+            z-index: 1000;
+            transition: opacity 0.3s;
         }
 
         .loading-overlay.hidden {
@@ -67,10 +456,10 @@
             pointer-events: none;
         }
 
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid var(--bg-tertiary);
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
             border-top-color: var(--accent-blue);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -83,10 +472,9 @@
         .loading-text {
             margin-top: 20px;
             color: var(--text-secondary);
-            font-size: 14px;
         }
 
-        .loading-progress {
+        .progress-bar {
             width: 200px;
             height: 4px;
             background: var(--bg-tertiary);
@@ -95,730 +483,253 @@
             overflow: hidden;
         }
 
-        .loading-progress-bar {
+        .progress-fill {
             height: 100%;
             background: var(--accent-blue);
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.3s;
         }
 
-        /* Main Layout */
-        .app-container {
-            display: flex;
-            height: 100vh;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 260px;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .logo-text {
-            font-weight: 700;
-            font-size: 18px;
-        }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 12px;
-        }
-
-        .nav-section {
-            margin-bottom: 24px;
-        }
-
-        .nav-section-title {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 0 12px;
-            margin-bottom: 8px;
-        }
-
-        .tab-btn {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            background: transparent;
-            border: none;
-            border-radius: 6px;
-            color: var(--text-secondary);
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: left;
-        }
-
-        .tab-btn:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-
-        .tab-btn.active {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .tab-icon {
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-
-        .status-indicator {
-            margin-left: auto;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-orange);
-        }
-
-        .status-indicator.ready {
-            background: var(--accent-green);
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .tab-content {
-            display: none;
-            flex: 1;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .tab-content.active {
-            display: flex;
-        }
-
-        /* Editor Section */
-        .editor-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        .toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 16px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .toolbar-left, .toolbar-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary {
-            background: var(--accent-green);
-            color: #000;
-        }
-
-        .btn-primary:hover {
-            background: #46c35f;
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-hover);
-        }
-
-        .btn-danger {
-            background: var(--accent-red);
-            color: #fff;
-        }
-
-        .btn-danger:hover {
-            opacity: 0.9;
-        }
-
-        .editor-wrapper {
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .CodeMirror {
-            height: 100%;
-            font-family: 'Fira Code', monospace;
-            font-size: 14px;
-        }
-
-        /* Resizer */
-        .resizer {
-            height: 6px;
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-            cursor: ns-resize;
-            transition: background 0.2s;
-        }
-
-        .resizer:hover {
-            background: var(--accent-blue);
-        }
-
-        /* Console Section */
-        .console-section {
-            height: 200px;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-primary);
-        }
-
-        .console-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .console-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        .console-output {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px;
-            font-family: 'Fira Code', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .console-line {
-            margin-bottom: 4px;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .console-line.info { color: var(--accent-blue); }
-        .console-line.success { color: var(--accent-green); }
-        .console-line.error { color: var(--accent-red); }
-        .console-line.warning { color: var(--accent-orange); }
-
-        /* Console Input */
-        .console-input-line {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-        }
-
-        .console-input-line.active {
-            display: flex;
-        }
-
-        .console-prompt {
-            color: var(--accent-green);
-            font-family: 'Fira Code', monospace;
-            font-size: 13px;
-        }
-
-        .console-input {
-            flex: 1;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 6px 10px;
-            color: var(--text-primary);
-            font-family: 'Fira Code', monospace;
-            font-size: 13px;
-        }
-
-        .console-input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
-
-        /* Pygame Section */
-        .pygame-layout {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .pygame-editor-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--border-color);
-        }
-
-        .pygame-canvas-panel {
-            width: 420px;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-secondary);
-        }
-
-        .canvas-header {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .canvas-title {
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .canvas-container {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            background: #000;
-        }
-
-        #gameCanvas {
-            background: #1a1a2e;
-            border-radius: 4px;
-            max-width: 100%;
-            max-height: 100%;
-        }
-
-        .asset-panel {
-            padding: 12px;
-            border-top: 1px solid var(--border-color);
-            max-height: 150px;
-            overflow-y: auto;
-        }
-
-        .asset-panel-title {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-
-        .asset-drop-zone {
+        /* Drop Zone */
+        .drop-zone {
             border: 2px dashed var(--border-color);
-            border-radius: 6px;
-            padding: 16px;
+            border-radius: 8px;
+            padding: 20px;
             text-align: center;
-            cursor: pointer;
+            margin: 10px;
             transition: all 0.2s;
         }
 
-        .asset-drop-zone:hover, .asset-drop-zone.dragover {
+        .drop-zone.drag-over {
             border-color: var(--accent-blue);
             background: rgba(88, 166, 255, 0.1);
         }
 
-        .asset-drop-text {
-            font-size: 12px;
-            color: var(--text-secondary);
+        .file-input {
+            display: none;
         }
 
-        .asset-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .asset-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 8px;
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-            font-size: 11px;
-        }
-
-        .asset-item img {
-            width: 20px;
-            height: 20px;
-            object-fit: cover;
-            border-radius: 2px;
-        }
-
-        /* AI Chat */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .chat-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--bg-secondary);
-        }
-
-        .chat-header-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .chat-header-subtitle {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-        }
-
-        .chat-message {
-            margin-bottom: 16px;
-            display: flex;
-            gap: 12px;
-        }
-
-        .chat-message.user {
-            flex-direction: row-reverse;
-        }
-
-        .chat-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-
-        .chat-message.assistant .chat-avatar {
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-        }
-
-        .chat-message.user .chat-avatar {
-            background: var(--accent-green);
-        }
-
-        .chat-bubble {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .chat-message.assistant .chat-bubble {
-            background: var(--bg-secondary);
-            border-bottom-left-radius: 4px;
-        }
-
-        .chat-message.user .chat-bubble {
-            background: var(--accent-blue);
-            color: #000;
-            border-bottom-right-radius: 4px;
-        }
-
-        .chat-bubble pre {
-            background: var(--bg-primary);
-            padding: 12px;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin: 8px 0;
-        }
-
-        .chat-bubble code {
-            font-family: 'Fira Code', monospace;
-            font-size: 13px;
-        }
-
-        .chat-input-area {
-            padding: 16px;
-            border-top: 1px solid var(--border-color);
-            background: var(--bg-secondary);
-        }
-
-        .chat-input-wrapper {
+        /* Button Groups */
+        .btn-group {
             display: flex;
             gap: 8px;
         }
 
-        .chat-input {
-            flex: 1;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
-            color: var(--text-primary);
-            font-size: 14px;
-            resize: none;
-            min-height: 44px;
-            max-height: 120px;
-        }
-
-        .chat-input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
-
-        .chat-send-btn {
-            width: 44px;
-            height: 44px;
-            background: var(--accent-blue);
-            border: none;
-            border-radius: 8px;
-            color: #000;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .chat-send-btn:hover {
-            background: #79b8ff;
-        }
-
-        .chat-send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* Typing indicator */
-        .typing-indicator {
-            display: flex;
-            gap: 4px;
-            padding: 8px 0;
-        }
-
-        .typing-indicator span {
+        /* Scrollbar */
+        ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
-            background: var(--text-secondary);
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
         }
 
-        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
 
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-4px); }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
         }
     </style>
 </head>
 <body>
-    <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner"></div>
+        <div class="loader"></div>
         <div class="loading-text" id="loadingText">Initializing PyStudio Pro...</div>
-        <div class="loading-progress">
-            <div class="loading-progress-bar" id="loadingProgress"></div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
         </div>
     </div>
 
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <div class="logo-icon">Py</div>
-                    <span class="logo-text">PyStudio Pro</span>
-                </div>
+        <header class="header">
+            <div class="logo">
+                <svg viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="#3776AB"/>
+                    <path d="M16 6C10.477 6 10 8.5 10 10v2h6v1H9c-2 0-4 1.5-4 5s1.5 5 4 5h2v-2.5c0-2 1.5-3.5 3.5-3.5H19c1.5 0 3-1 3-2.5V10c0-2-1.5-4-6-4zm-3 2.5a1 1 0 110 2 1 1 0 010-2z" fill="#FFD43B"/>
+                    <path d="M16 26c5.523 0 6-2.5 6-4v-2h-6v-1h7c2 0 4-1.5 4-5s-1.5-5-4-5h-2v2.5c0 2-1.5 3.5-3.5 3.5H13c-1.5 0-3 1-3 2.5V22c0 2 1.5 4 6 4zm3-2.5a1 1 0 110-2 1 1 0 010 2z" fill="#FFD43B"/>
+                </svg>
+                PyStudio Pro
             </div>
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <div class="nav-section-title">Editors</div>
-                    <button class="tab-btn active" data-tab="python">
-                        <span class="tab-icon">🐍</span>
-                        Python
-                        <div class="status-indicator" id="pythonStatus"></div>
-                    </button>
-                    <button class="tab-btn" data-tab="pygame">
-                        <span class="tab-icon">🎮</span>
-                        Pygame Zero
-                    </button>
-                </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Tools</div>
-                    <button class="tab-btn" data-tab="ai">
-                        <span class="tab-icon">🤖</span>
-                        AI Assistant
-                    </button>
-                </div>
-            </nav>
-        </aside>
+            <div class="status-badge">
+                <div class="status-dot" id="pythonStatus"></div>
+                <span id="pythonStatusText">Loading Python...</span>
+            </div>
+        </header>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Python Tab -->
-            <div class="tab-content active" id="python-tab">
-                <div class="editor-section">
-                    <div class="toolbar">
-                        <div class="toolbar-left">
-                            <span style="font-size: 13px; color: var(--text-secondary);">main.py</span>
-                            <span id="pythonStatusText" style="font-size: 11px; color: var(--accent-orange); margin-left: 8px;">Loading...</span>
-                        </div>
-                        <div class="toolbar-right">
-                            <button class="btn btn-secondary" onclick="clearPythonConsole()">Clear</button>
-                            <button class="btn btn-primary" onclick="runPythonCode()">▶ Run</button>
-                        </div>
+            <div class="tabs-container">
+                <div class="tab-bar">
+                    <div class="tab active" data-tab="python">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        Python
                     </div>
-                    <div class="editor-wrapper">
-                        <textarea id="pythonEditor"></textarea>
+                    <div class="tab" data-tab="pygame">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                        Pygame Zero
                     </div>
-                </div>
-                <div class="resizer" id="pythonResizer"></div>
-                <div class="console-section" id="pythonConsoleSection">
-                    <div class="console-header">
-                        <span class="console-title">Console Output</span>
-                    </div>
-                    <div class="console-output" id="pythonConsole"></div>
-                    <div class="console-input-line" id="pythonInputLine">
-                        <span class="console-prompt">>>></span>
-                        <input type="text" class="console-input" id="pythonInput" placeholder="Type input and press Enter...">
+                    <div class="tab" data-tab="ai">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        AI Assistant
                     </div>
                 </div>
-            </div>
 
-            <!-- Pygame Zero Tab -->
-            <div class="tab-content" id="pygame-tab">
-                <div class="pygame-layout">
-                    <div class="pygame-editor-panel">
-                        <div class="toolbar">
-                            <div class="toolbar-left">
-                                <span style="font-size: 13px; color: var(--text-secondary);">game.py</span>
-                            </div>
-                            <div class="toolbar-right">
-                                <button class="btn btn-secondary" onclick="stopGame()">Stop</button>
-                                <button class="btn btn-primary" onclick="runPygameCode()">▶ Run Game</button>
+                <!-- Python Tab -->
+                <div class="tab-content active" id="python-tab">
+                    <div class="editor-panel">
+                        <div class="panel-header">
+                            <span class="panel-title">main.py</span>
+                            <div class="btn-group">
+                                <button class="btn btn-secondary" onclick="clearPythonConsole()">Clear</button>
+                                <button class="btn btn-primary" onclick="runPython()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                        <polygon points="5,3 19,12 5,21"/>
+                                    </svg>
+                                    Run
+                                </button>
                             </div>
                         </div>
                         <div class="editor-wrapper">
-                            <textarea id="pygameEditor"></textarea>
-                        </div>
-                        <div class="resizer" id="pygameResizer"></div>
-                        <div class="console-section" id="pygameConsoleSection">
-                            <div class="console-header">
-                                <span class="console-title">Game Console</span>
-                            </div>
-                            <div class="console-output" id="pygameConsole"></div>
+                            <textarea id="pythonEditor"># Welcome to PyStudio Pro!
+# Write your Python code here
+
+name = input("What is your name? ")
+print(f"Hello, {name}!")
+
+for i in range(5):
+    print(f"Count: {i + 1}")
+
+# Try some math
+import math
+print(f"Pi is approximately {math.pi:.4f}")
+</textarea>
                         </div>
                     </div>
-                    <div class="pygame-canvas-panel">
-                        <div class="canvas-header">
-                            <span class="canvas-title">Game Preview</span>
-                            <span id="fpsCounter" style="font-size: 11px; color: var(--text-secondary);">FPS: 0</span>
+                    <div class="console-panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Console Output</span>
                         </div>
-                        <div class="canvas-container">
-                            <canvas id="gameCanvas" width="400" height="300"></canvas>
-                        </div>
-                        <div class="asset-panel">
-                            <div class="asset-panel-title">Assets</div>
-                            <div class="asset-drop-zone" id="assetDropZone" onclick="document.getElementById('assetInput').click()">
-                                <div class="asset-drop-text">Drop images here or click to upload</div>
-                                <input type="file" id="assetInput" multiple accept="image/*" style="display: none;">
-                            </div>
-                            <div class="asset-list" id="assetList"></div>
+                        <div class="console-output" id="pythonConsole"></div>
+                        <div class="console-input-container">
+                            <span class="console-prompt">&gt;&gt;&gt;</span>
+                            <input type="text" class="console-input" id="consoleInput" placeholder="Type input here and press Enter..." disabled>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- AI Assistant Tab -->
-            <div class="tab-content" id="ai-tab">
-                <div class="chat-container">
-                    <div class="chat-header">
-                        <div class="chat-header-title">AI Programming Assistant</div>
-                        <div class="chat-header-subtitle">Powered by Google Gemini - Ask me anything about Python or Pygame!</div>
-                    </div>
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="chat-message assistant">
-                            <div class="chat-avatar">AI</div>
-                            <div class="chat-bubble">
-                                Hello! I'm your AI programming assistant. I can help you with:
-                                <ul style="margin: 8px 0 0 16px;">
-                                    <li>Writing Python code</li>
-                                    <li>Debugging errors</li>
-                                    <li>Pygame Zero game development</li>
-                                    <li>Explaining programming concepts</li>
-                                </ul>
-                                How can I help you today?
+                <!-- Pygame Zero Tab -->
+                <div class="tab-content" id="pygame-tab">
+                    <div class="editor-panel">
+                        <div class="panel-header">
+                            <span class="panel-title">game.py</span>
+                            <div class="btn-group">
+                                <button class="btn btn-danger" onclick="stopGame()" id="stopBtn" style="display:none;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                        <rect x="6" y="6" width="12" height="12"/>
+                                    </svg>
+                                    Stop
+                                </button>
+                                <button class="btn btn-primary" onclick="runGame()" id="runGameBtn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                        <polygon points="5,3 19,12 5,21"/>
+                                    </svg>
+                                    Run Game
+                                </button>
                             </div>
                         </div>
-                    </div>
-                    <div class="chat-input-area">
-                        <div class="chat-input-wrapper">
-                            <textarea class="chat-input" id="chatInput" placeholder="Ask me anything about Python..." rows="1"></textarea>
-                            <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage()">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"/>
+                        <div class="asset-bar">
+                            <span style="color: var(--text-secondary); font-size: 12px;">Assets:</span>
+                            <div id="assetList"></div>
+                            <label class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
                                 </svg>
-                            </button>
+                                Import
+                                <input type="file" class="file-input" id="assetInput" accept="image/*" multiple>
+                            </label>
+                        </div>
+                        <div class="editor-wrapper">
+                            <textarea id="pygameEditor"># Pygame Zero Game
+# Use arrow keys to move the player
+
+WIDTH = 400
+HEIGHT = 300
+
+player_x = 200
+player_y = 150
+player_speed = 3
+
+score = 0
+
+def draw():
+    screen.fill("darkblue")
+    screen.draw.filled_circle((player_x, player_y), 20, "yellow")
+    screen.draw.text(f"Score: {score}", (10, 10), color="white", fontsize=24)
+    screen.draw.text("Use arrow keys to move", (10, HEIGHT - 30), color="gray", fontsize=16)
+
+def update():
+    global player_x, player_y, score
+    
+    if keyboard.left and player_x > 20:
+        player_x = player_x - player_speed
+    if keyboard.right and player_x < WIDTH - 20:
+        player_x = player_x + player_speed
+    if keyboard.up and player_y > 20:
+        player_y = player_y - player_speed
+    if keyboard.down and player_y < HEIGHT - 20:
+        player_y = player_y + player_speed
+    
+    score = score + 1
+</textarea>
+                        </div>
+                    </div>
+                    <div class="pygame-panel">
+                        <div class="canvas-container">
+                            <canvas id="gameCanvas" width="400" height="300"></canvas>
+                            <div class="fps-counter" id="fpsCounter">FPS: 0</div>
+                        </div>
+                        <div class="pygame-console" id="pygameConsole"></div>
+                    </div>
+                </div>
+
+                <!-- AI Chat Tab -->
+                <div class="tab-content" id="ai-tab">
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message assistant">
+                                <strong>PyStudio AI Assistant</strong><br><br>
+                                Hello! I'm here to help you with Python and Pygame Zero programming. Ask me anything about:
+                                <ul style="margin: 10px 0 0 20px;">
+                                    <li>Python syntax and best practices</li>
+                                    <li>Debugging your code</li>
+                                    <li>Pygame Zero game development</li>
+                                    <li>Algorithm explanations</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="chat-input-container">
+                            <div class="chat-input-wrapper">
+                                <textarea class="chat-input" id="chatInput" rows="2" placeholder="Ask me anything about Python..."></textarea>
+                                <button class="btn btn-primary" onclick="sendChat()" style="align-self: flex-end;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="22" y1="2" x2="11" y2="13"/>
+                                        <polygon points="22,2 15,22 11,13 2,9"/>
+                                    </svg>
+                                    Send
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -826,31 +737,32 @@
         </main>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
     <script>
         // ========== Global State ==========
         let pyodide = null;
-        let pyodideReady = false;
+        let pythonReady = false;
         let pythonEditor, pygameEditor;
         let gameRunning = false;
         let gameLoopId = null;
-        let importedAssets = {};
         let inputResolve = null;
+        const assets = {};
         
-        // Keyboard state for Pygame
+        // Keyboard state
         const keyboard = {
             left: false, right: false, up: false, down: false,
-            space: false, a: false, d: false, w: false, s: false
+            space: false, enter: false,
+            a: false, d: false, w: false, s: false
         };
 
-        // ========== Initialization ==========
-        document.addEventListener('DOMContentLoaded', () => {
+        // ========== Initialize ==========
+        document.addEventListener('DOMContentLoaded', async () => {
             initEditors();
             initTabs();
-            initResizers();
+            initKeyboard();
             initAssetUpload();
-            initKeyboardListeners();
-            initInputHandler();
-            loadPyodide();
+            await loadPyodideRuntime();
         });
 
         function initEditors() {
@@ -860,36 +772,11 @@
                 lineNumbers: true,
                 indentUnit: 4,
                 tabSize: 4,
+                indentWithTabs: false,
+                lineWrapping: true,
                 matchBrackets: true,
                 autoCloseBrackets: true
             });
-
-            pythonEditor.setValue(`# Python Editor - Full Python Support
-# Try the interactive input() function!
-
-def greet():
-    name = input("What is your name? ")
-    print(f"Hello, {name}!")
-    
-    age = input("How old are you? ")
-    print(f"Wow, {age} years old! That's great!")
-
-# Uncomment to try:
-# greet()
-
-# Or try some calculations
-import math
-
-numbers = [1, 2, 3, 4, 5]
-print(f"Numbers: {numbers}")
-print(f"Sum: {sum(numbers)}")
-print(f"Average: {sum(numbers)/len(numbers)}")
-print(f"Square root of 16: {math.sqrt(16)}")
-
-# List comprehension
-squares = [x**2 for x in numbers]
-print(f"Squares: {squares}")
-`);
 
             pygameEditor = CodeMirror.fromTextArea(document.getElementById('pygameEditor'), {
                 mode: 'python',
@@ -897,287 +784,170 @@ print(f"Squares: {squares}")
                 lineNumbers: true,
                 indentUnit: 4,
                 tabSize: 4,
-                matchBrackets: true,
-                autoCloseBrackets: true
+                indentWithTabs: false,
+                lineWrapping: true,
+                matchBrackets: true
             });
-
-            pygameEditor.setValue(`# Pygame Zero - Bouncing Ball Game
-# Use arrow keys to move the paddle!
-
-WIDTH = 400
-HEIGHT = 300
-TITLE = "Bouncing Ball"
-
-ball = {
-    'x': 200,
-    'y': 150,
-    'vx': 4,
-    'vy': 3,
-    'radius': 12,
-    'color': '#58a6ff'
-}
-
-paddle = {
-    'x': 150,
-    'y': 270,
-    'width': 80,
-    'height': 12,
-    'speed': 6,
-    'color': '#3fb950'
-}
-
-score = 0
-
-def draw():
-    screen.fill('#0d1117')
-    
-    # Draw ball
-    screen.draw.filled_circle((ball['x'], ball['y']), ball['radius'], ball['color'])
-    
-    # Draw paddle
-    screen.draw.filled_rect(
-        Rect(paddle['x'], paddle['y'], paddle['width'], paddle['height']),
-        paddle['color']
-    )
-    
-    # Draw score
-    screen.draw.text(f"Score: {score}", (10, 10), fontsize=24, color='white')
-
-def update():
-    global score
-    
-    # Move ball
-    ball['x'] += ball['vx']
-    ball['y'] += ball['vy']
-    
-    # Wall collisions
-    if ball['x'] <= ball['radius'] or ball['x'] >= WIDTH - ball['radius']:
-        ball['vx'] *= -1
-    if ball['y'] <= ball['radius']:
-        ball['vy'] *= -1
-    
-    # Paddle collision
-    if (ball['y'] + ball['radius'] >= paddle['y'] and
-        ball['x'] >= paddle['x'] and
-        ball['x'] <= paddle['x'] + paddle['width']):
-        ball['vy'] = -abs(ball['vy'])
-        score += 10
-    
-    # Ball fell
-    if ball['y'] > HEIGHT:
-        ball['x'] = 200
-        ball['y'] = 150
-        score = max(0, score - 20)
-    
-    # Paddle movement
-    if keyboard.left and paddle['x'] > 0:
-        paddle['x'] -= paddle['speed']
-    if keyboard.right and paddle['x'] < WIDTH - paddle['width']:
-        paddle['x'] += paddle['speed']
-`);
         }
 
         function initTabs() {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    btn.classList.add('active');
-                    document.getElementById(btn.dataset.tab + '-tab').classList.add('active');
-                    setTimeout(() => {
-                        pythonEditor?.refresh();
-                        pygameEditor?.refresh();
-                    }, 10);
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
                 });
             });
         }
 
-        function initResizers() {
-            setupResizer('pythonResizer', 'pythonConsoleSection');
-            setupResizer('pygameResizer', 'pygameConsoleSection');
-        }
-
-        function setupResizer(resizerId, sectionId) {
-            const resizer = document.getElementById(resizerId);
-            const section = document.getElementById(sectionId);
-            let startY, startH;
-
-            resizer.addEventListener('mousedown', e => {
-                startY = e.clientY;
-                startH = section.offsetHeight;
-                document.addEventListener('mousemove', resize);
-                document.addEventListener('mouseup', stopResize);
-            });
-
-            function resize(e) {
-                section.style.height = Math.max(100, Math.min(400, startH + startY - e.clientY)) + 'px';
-            }
-
-            function stopResize() {
-                document.removeEventListener('mousemove', resize);
-                document.removeEventListener('mouseup', stopResize);
-            }
-        }
-
-        function initAssetUpload() {
-            const dropZone = document.getElementById('assetDropZone');
-            const fileInput = document.getElementById('assetInput');
-
-            ['dragenter', 'dragover'].forEach(e => {
-                dropZone.addEventListener(e, evt => {
-                    evt.preventDefault();
-                    dropZone.classList.add('dragover');
-                });
-            });
-
-            ['dragleave', 'drop'].forEach(e => {
-                dropZone.addEventListener(e, evt => {
-                    evt.preventDefault();
-                    dropZone.classList.remove('dragover');
-                });
-            });
-
-            dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
-            fileInput.addEventListener('change', e => handleFiles(e.target.files));
-        }
-
-        function handleFiles(files) {
-            Array.from(files).forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = e => {
-                        const img = new Image();
-                        img.onload = () => {
-                            importedAssets[file.name] = img;
-                            updateAssetList();
-                        };
-                        img.src = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-
-        function updateAssetList() {
-            const list = document.getElementById('assetList');
-            list.innerHTML = Object.keys(importedAssets).map(name => 
-                `<div class="asset-item"><img src="${importedAssets[name].src}" alt="${name}"><span>${name}</span></div>`
-            ).join('');
-        }
-
-        function initKeyboardListeners() {
+        function initKeyboard() {
             const keyMap = {
                 'ArrowLeft': 'left', 'ArrowRight': 'right', 'ArrowUp': 'up', 'ArrowDown': 'down',
-                ' ': 'space', 'a': 'a', 'd': 'd', 'w': 'w', 's': 's',
-                'A': 'a', 'D': 'd', 'W': 'w', 'S': 's'
+                'KeyA': 'a', 'KeyD': 'd', 'KeyW': 'w', 'KeyS': 's',
+                'Space': 'space', 'Enter': 'enter'
             };
 
             document.addEventListener('keydown', e => {
-                if (keyMap[e.key]) {
-                    keyboard[keyMap[e.key]] = true;
+                const key = keyMap[e.code];
+                if (key) {
+                    keyboard[key] = true;
                     if (gameRunning) e.preventDefault();
                 }
             });
 
             document.addEventListener('keyup', e => {
-                if (keyMap[e.key]) keyboard[keyMap[e.key]] = false;
+                const key = keyMap[e.code];
+                if (key) keyboard[key] = false;
             });
         }
 
-        function initInputHandler() {
-            const inputField = document.getElementById('pythonInput');
-            inputField.addEventListener('keydown', e => {
-                if (e.key === 'Enter' && inputResolve) {
-                    const value = inputField.value;
-                    appendConsole('pythonConsole', '>>> ' + value, '');
-                    inputField.value = '';
-                    document.getElementById('pythonInputLine').classList.remove('active');
-                    inputResolve(value);
-                    inputResolve = null;
-                }
+        function initAssetUpload() {
+            const input = document.getElementById('assetInput');
+            input.addEventListener('change', e => {
+                Array.from(e.target.files).forEach(loadAsset);
             });
         }
 
-        // ========== Pyodide Loading ==========
-        async function loadPyodide() {
-            updateLoading('Loading Python runtime...', 20);
+        function loadAsset(file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    const name = file.name.replace(/\.[^/.]+$/, '');
+                    assets[name] = img;
+                    updateAssetList();
+                    logPygame(`Loaded asset: ${name} (${img.width}x${img.height})`, 'success');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
 
+        function updateAssetList() {
+            const list = document.getElementById('assetList');
+            list.innerHTML = Object.keys(assets).map(name => `
+                <div class="asset-item">
+                    <img src="${assets[name].src}" alt="${name}">
+                    <span>${name}</span>
+                    <span class="remove-asset" onclick="removeAsset('${name}')">&times;</span>
+                </div>
+            `).join('');
+        }
+
+        function removeAsset(name) {
+            delete assets[name];
+            updateAssetList();
+        }
+
+        // ========== Loading ==========
+        function updateLoading(text, progress) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        async function loadPyodideRuntime() {
+            updateLoading('Loading Python runtime...', 10);
+            
             try {
-                // Load Pyodide script dynamically
-                await loadScript('https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js');
+                // Load Pyodide script
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.js';
+                document.head.appendChild(script);
+                
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                });
+
                 updateLoading('Initializing Python...', 40);
 
-                pyodide = await window.loadPyodide({
-                    indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'
+                pyodide = await loadPyodide({
+                    indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.27.0/full/'
                 });
 
                 updateLoading('Setting up environment...', 70);
 
-                // Setup Python environment with proper input handling
+                // Setup output capture
                 await pyodide.runPythonAsync(`
 import sys
-import io
+from io import StringIO
 
-class BrowserOutput:
+class OutputCapture:
     def __init__(self):
-        self.buffer = []
+        self.outputs = []
     
     def write(self, text):
-        if text:
-            self.buffer.append(text)
+        if text and text.strip():
+            self.outputs.append(text)
     
     def flush(self):
         pass
     
-    def getvalue(self):
-        result = ''.join(self.buffer)
-        self.buffer = []
+    def get_output(self):
+        result = ''.join(self.outputs)
+        self.outputs = []
         return result
 
-_output = BrowserOutput()
-sys.stdout = _output
-sys.stderr = _output
+_capture = OutputCapture()
+sys.stdout = _capture
+sys.stderr = _capture
                 `);
 
-                updateLoading('Python ready!', 100);
-                pyodideReady = true;
+                updateLoading('Ready!', 100);
+                pythonReady = true;
+                
                 document.getElementById('pythonStatus').classList.add('ready');
                 document.getElementById('pythonStatusText').textContent = 'Ready';
-                document.getElementById('pythonStatusText').style.color = 'var(--accent-green)';
-
+                
                 setTimeout(() => {
                     document.getElementById('loadingOverlay').classList.add('hidden');
-                }, 400);
+                }, 300);
 
             } catch (error) {
-                console.error('Failed to load Pyodide:', error);
-                updateLoading('Python failed to load - Check console', 100);
+                console.error('Pyodide load error:', error);
+                updateLoading('Failed to load Python', 100);
                 document.getElementById('pythonStatusText').textContent = 'Error';
                 document.getElementById('pythonStatusText').style.color = 'var(--accent-red)';
+                
                 setTimeout(() => {
                     document.getElementById('loadingOverlay').classList.add('hidden');
-                }, 1500);
+                }, 1000);
             }
         }
 
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
+        // ========== Console Helpers ==========
+        function logPython(text, type = '') {
+            const console = document.getElementById('pythonConsole');
+            const line = document.createElement('div');
+            line.className = 'console-line' + (type ? ' ' + type : '');
+            line.textContent = text;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
         }
 
-        function updateLoading(text, progress) {
-            document.getElementById('loadingText').textContent = text;
-            document.getElementById('loadingProgress').style.width = progress + '%';
-        }
-
-        // ========== Console Functions ==========
-        function appendConsole(id, text, type = '') {
-            const console = document.getElementById(id);
+        function logPygame(text, type = '') {
+            const console = document.getElementById('pygameConsole');
             const line = document.createElement('div');
             line.className = 'console-line' + (type ? ' ' + type : '');
             line.textContent = text;
@@ -1194,96 +964,131 @@ sys.stderr = _output
         }
 
         // ========== Python Execution ==========
-        async function runPythonCode() {
-            if (!pyodideReady) {
-                appendConsole('pythonConsole', 'Python is still loading. Please wait...', 'warning');
+        async function runPython() {
+            if (!pythonReady) {
+                logPython('Python is still loading...', 'warning');
                 return;
             }
 
             clearPythonConsole();
-            appendConsole('pythonConsole', '▶ Running...', 'info');
+            logPython('Running...', 'info');
 
             const code = pythonEditor.getValue();
-
-            // Check if code uses input()
-            if (code.includes('input(')) {
-                await runPythonWithInput(code);
+            const inputField = document.getElementById('consoleInput');
+            
+            // Check if code needs input
+            const needsInput = code.includes('input(');
+            
+            if (needsInput) {
+                await runWithInput(code);
             } else {
-                await runPythonSimple(code);
+                await runSimple(code);
             }
         }
 
-        async function runPythonSimple(code) {
+        async function runSimple(code) {
             try {
-                await pyodide.runPythonAsync('_output.buffer = []');
+                await pyodide.runPythonAsync('_capture.outputs = []');
                 await pyodide.runPythonAsync(code);
-                const output = await pyodide.runPythonAsync('_output.getvalue()');
+                const output = await pyodide.runPythonAsync('_capture.get_output()');
                 
                 if (output) {
                     output.split('\n').forEach(line => {
-                        if (line) appendConsole('pythonConsole', line, '');
+                        if (line.trim()) logPython(line);
                     });
                 }
-                appendConsole('pythonConsole', '✓ Done', 'success');
+                logPython('Done', 'success');
             } catch (error) {
-                appendConsole('pythonConsole', '✗ ' + error.message, 'error');
+                logPython('Error: ' + error.message, 'error');
             }
         }
 
-        async function runPythonWithInput(code) {
-            // Parse and execute line by line, handling input() calls
-            try {
-                await pyodide.runPythonAsync('_output.buffer = []');
+        async function runWithInput(code) {
+            const inputField = document.getElementById('consoleInput');
+            
+            // Create async input function
+            window.browserInput = async function(prompt) {
+                if (prompt) logPython(prompt);
                 
-                // Wrap the code in a function that we can control
+                inputField.disabled = false;
+                inputField.focus();
+                inputField.placeholder = 'Type your input and press Enter...';
+                
+                return new Promise(resolve => {
+                    inputResolve = resolve;
+                });
+            };
+
+            // Handle Enter key
+            inputField.onkeydown = async (e) => {
+                if (e.key === 'Enter' && inputResolve) {
+                    const value = inputField.value;
+                    logPython('>>> ' + value, 'info');
+                    inputField.value = '';
+                    inputField.disabled = true;
+                    const resolver = inputResolve;
+                    inputResolve = null;
+                    resolver(value);
+                }
+            };
+
+            try {
+                await pyodide.runPythonAsync('_capture.outputs = []');
+                
+                // Register the JS input function
+                pyodide.registerJsModule('browser_io', {
+                    get_input: async (prompt) => {
+                        return await window.browserInput(prompt || '');
+                    }
+                });
+
+                // Wrap code with async input
                 const wrappedCode = `
-import sys
-from js import prompt_for_input
+import asyncio
+from browser_io import get_input
 
-def _browser_input(prompt_text=""):
-    if prompt_text:
-        sys.stdout.write(prompt_text)
-        sys.stdout.flush()
-    return prompt_for_input(prompt_text)
+async def _async_input(prompt=""):
+    result = await get_input(prompt)
+    return result
 
-# Replace input with our browser version
-__builtins__.input = _browser_input
+# Store original
+_original_input = input
 
-${code}
+# Replace input with async version for this execution
+async def _run_code():
+    # Make input async
+    import builtins
+    
+    # We need to handle input() calls specially
+    ${code.split('\n').map(line => {
+        // Replace input() calls with await _async_input()
+        return line.replace(/input\s*\(/g, 'await _async_input(');
+    }).join('\n    ')}
+
+asyncio.get_event_loop().run_until_complete(_run_code())
 `;
-                // Define the JavaScript function for prompting
-                window.prompt_for_input = (prompt) => {
-                    return new Promise(resolve => {
-                        // Show the prompt in console
-                        if (prompt) {
-                            appendConsole('pythonConsole', prompt, '');
-                        }
-                        // Show input field
-                        document.getElementById('pythonInputLine').classList.add('active');
-                        document.getElementById('pythonInput').focus();
-                        inputResolve = resolve;
-                    });
-                };
-
-                // Run with async input support
                 await pyodide.runPythonAsync(wrappedCode);
                 
-                const output = await pyodide.runPythonAsync('_output.getvalue()');
+                const output = await pyodide.runPythonAsync('_capture.get_output()');
                 if (output) {
                     output.split('\n').forEach(line => {
-                        if (line) appendConsole('pythonConsole', line, '');
+                        if (line.trim()) logPython(line);
                     });
                 }
-                appendConsole('pythonConsole', '✓ Done', 'success');
+                logPython('Done', 'success');
+                
             } catch (error) {
-                if (!error.message.includes('coroutine')) {
-                    appendConsole('pythonConsole', '✗ ' + error.message, 'error');
+                if (!error.message.includes('Cannot schedule new futures')) {
+                    logPython('Error: ' + error.message, 'error');
                 }
+            } finally {
+                inputField.disabled = true;
+                inputField.placeholder = 'Type input here and press Enter...';
             }
         }
 
         // ========== Pygame Zero Engine ==========
-        function runPygameCode() {
+        function runGame() {
             stopGame();
             clearPygameConsole();
             
@@ -1291,263 +1096,88 @@ ${code}
             const canvas = document.getElementById('gameCanvas');
             const ctx = canvas.getContext('2d');
 
-            // Parse game settings
+            // Parse dimensions
             let WIDTH = 400, HEIGHT = 300;
-            const widthMatch = code.match(/WIDTH\s*=\s*(\d+)/);
-            const heightMatch = code.match(/HEIGHT\s*=\s*(\d+)/);
-            if (widthMatch) WIDTH = parseInt(widthMatch[1]);
-            if (heightMatch) HEIGHT = parseInt(heightMatch[1]);
+            const wMatch = code.match(/WIDTH\s*=\s*(\d+)/);
+            const hMatch = code.match(/HEIGHT\s*=\s*(\d+)/);
+            if (wMatch) WIDTH = parseInt(wMatch[1]);
+            if (hMatch) HEIGHT = parseInt(hMatch[1]);
             
             canvas.width = WIDTH;
             canvas.height = HEIGHT;
 
-            appendConsole('pygameConsole', '▶ Starting game...', 'info');
+            logPygame('Starting game...', 'info');
 
             try {
-                // Create game context with all drawing functions
-                const gameContext = createGameContext(ctx, WIDTH, HEIGHT);
+                // Create game context
+                const gameCtx = createGameContext(ctx, WIDTH, HEIGHT);
                 
-                // Store Rect and Actor in global scope for the eval
-                window.__pgzero__ = {
-                    screen: gameContext.screen,
-                    Rect: gameContext.Rect,
-                    Actor: gameContext.Actor,
-                    keyboard: keyboard,
-                    WIDTH: WIDTH,
-                    HEIGHT: HEIGHT,
-                    console: {
-                        log: (msg) => appendConsole('pygameConsole', String(msg), '')
-                    }
-                };
-
-                // Transform Python-style code to JavaScript
-                let jsCode = code
-                    // Handle def function():
-                    .replace(/def\s+(\w+)\s*$$\s*$$\s*:/g, 'function $1() {')
-                    // Handle def function(args):
-                    .replace(/def\s+(\w+)\s*$$([^)]*)$$\s*:/g, 'function $1($2) {')
-                    // Handle if statements
-                    .replace(/if\s+(.+?):/g, 'if ($1) {')
-                    // Handle elif statements  
-                    .replace(/elif\s+(.+?):/g, '} else if ($1) {')
-                    // Handle else:
-                    .replace(/else\s*:/g, '} else {')
-                    // Handle while loops
-                    .replace(/while\s+(.+?):/g, 'while ($1) {')
-                    // Handle for loops (simple range)
-                    .replace(/for\s+(\w+)\s+in\s+range$$(\d+)$$\s*:/g, 'for (let $1 = 0; $1 < $2; $1++) {')
-                    .replace(/for\s+(\w+)\s+in\s+range$$(\d+),\s*(\d+)$$\s*:/g, 'for (let $1 = $2; $1 < $3; $1++) {')
-                    // Python booleans to JS
-                    .replace(/\bTrue\b/g, 'true')
-                    .replace(/\bFalse\b/g, 'false')
-                    .replace(/\bNone\b/g, 'null')
-                    // Python logical operators
-                    .replace(/\band\b/g, '&&')
-                    .replace(/\bor\b/g, '||')
-                    .replace(/\bnot\b/g, '!')
-                    // Python print to console.log
-                    .replace(/print\s*$$(.+)$$/g, 'console.log($1)')
-                    // Keyboard access
-                    .replace(/keyboard\.(\w+)/g, '__pgzero__.keyboard.$1');
-
-                // Add closing braces based on indentation
-                const lines = jsCode.split('\n');
-                const processedLines = [];
-                const indentStack = [0];
-
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i];
-                    const trimmed = line.trim();
-                    if (trimmed === '') {
-                        processedLines.push(line);
-                        continue;
-                    }
-
-                    const indent = line.search(/\S/);
-                    if (indent === -1) {
-                        processedLines.push(line);
-                        continue;
-                    }
-
-                    // Close blocks when dedenting
-                    while (indentStack.length > 1 && indent < indentStack[indentStack.length - 1]) {
-                        indentStack.pop();
-                        processedLines.push(' '.repeat(indentStack[indentStack.length - 1]) + '}');
-                    }
-
-                    processedLines.push(line);
-
-                    // Track if this line opens a block
-                    if (line.includes('{') && !line.includes('}')) {
-                        indentStack.push(indent + 4);
-                    }
-                }
-
-                // Close remaining blocks
-                while (indentStack.length > 1) {
-                    indentStack.pop();
-                    processedLines.push('}');
-                }
-
-                jsCode = processedLines.join('\n');
-
-                // Create wrapper with all context available
-                const wrappedCode = `
-                    const screen = __pgzero__.screen;
-                    const Rect = __pgzero__.Rect;
-                    const Actor = __pgzero__.Actor;
-                    const keyboard = __pgzero__.keyboard;
-                    const WIDTH = __pgzero__.WIDTH;
-                    const HEIGHT = __pgzero__.HEIGHT;
-                    const console = __pgzero__.console;
+                // Transpile Python to JavaScript
+                const jsCode = transpileToJS(code);
+                
+                // Create execution environment
+                const execEnv = new Function(
+                    'screen', 'keyboard', 'Rect', 'Actor', 'WIDTH', 'HEIGHT', 'print', 'assets',
+                    `
                     let draw = null;
                     let update = null;
-                    
                     ${jsCode}
-                    
-                    window.__pgzero__.draw = (typeof draw === 'function') ? draw : null;
-                    window.__pgzero__.update = (typeof update === 'function') ? update : null;
-                `;
+                    return { draw, update };
+                    `
+                );
 
-                // Execute the transformed code
-                eval(wrappedCode);
+                const gameModule = execEnv(
+                    gameCtx.screen,
+                    keyboard,
+                    gameCtx.Rect,
+                    gameCtx.Actor,
+                    WIDTH,
+                    HEIGHT,
+                    (msg) => logPygame(String(msg)),
+                    assets
+                );
+
+                document.getElementById('runGameBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-flex';
 
                 gameRunning = true;
                 let lastTime = performance.now();
-                let frameCount = 0;
+                let frames = 0;
                 let fpsTime = 0;
 
-                function gameLoop(currentTime) {
+                function gameLoop(time) {
                     if (!gameRunning) return;
 
-                    const delta = currentTime - lastTime;
-                    lastTime = currentTime;
-                    
-                    // FPS counter
-                    frameCount++;
+                    const delta = time - lastTime;
+                    lastTime = time;
+
+                    frames++;
                     fpsTime += delta;
                     if (fpsTime >= 1000) {
-                        document.getElementById('fpsCounter').textContent = `FPS: ${frameCount}`;
-                        frameCount = 0;
+                        document.getElementById('fpsCounter').textContent = `FPS: ${frames}`;
+                        frames = 0;
                         fpsTime = 0;
                     }
 
-                    // Update
-                    if (window.__pgzero__.update) {
-                        try { window.__pgzero__.update(); } catch (e) {
-                            appendConsole('pygameConsole', '✗ Update error: ' + e.message, 'error');
-                            stopGame();
-                            return;
-                        }
-                    }
-
-                    // Draw
-                    if (window.__pgzero__.draw) {
-                        try { window.__pgzero__.draw(); } catch (e) {
-                            appendConsole('pygameConsole', '✗ Draw error: ' + e.message, 'error');
-                            stopGame();
-                            return;
-                        }
+                    try {
+                        if (gameModule.update) gameModule.update();
+                        if (gameModule.draw) gameModule.draw();
+                    } catch (error) {
+                        logPygame('Runtime error: ' + error.message, 'error');
+                        stopGame();
+                        return;
                     }
 
                     gameLoopId = requestAnimationFrame(gameLoop);
                 }
 
                 gameLoopId = requestAnimationFrame(gameLoop);
-                appendConsole('pygameConsole', '✓ Game running! Use arrow keys to play.', 'success');
+                logPygame('Game running! Use arrow keys to play.', 'success');
 
             } catch (error) {
-                appendConsole('pygameConsole', '✗ Error: ' + error.message, 'error');
-                console.error('[v0] Pygame Zero error:', error);
+                logPygame('Error: ' + error.message, 'error');
+                console.error('Game error:', error);
             }
-        }
-
-        function createGameContext(ctx, WIDTH, HEIGHT) {
-            const screen = {
-                fill: (color) => {
-                    ctx.fillStyle = color;
-                    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-                },
-                draw: {
-                    filled_circle: (pos, radius, color) => {
-                        ctx.fillStyle = color;
-                        ctx.beginPath();
-                        ctx.arc(pos[0], pos[1], radius, 0, Math.PI * 2);
-                        ctx.fill();
-                    },
-                    circle: (pos, radius, color) => {
-                        ctx.strokeStyle = color;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.arc(pos[0], pos[1], radius, 0, Math.PI * 2);
-                        ctx.stroke();
-                    },
-                    filled_rect: (rect, color) => {
-                        ctx.fillStyle = color;
-                        if (rect instanceof Rect) {
-                            ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-                        } else {
-                            ctx.fillRect(rect[0], rect[1], rect[2], rect[3]);
-                        }
-                    },
-                    rect: (rect, color) => {
-                        ctx.strokeStyle = color;
-                        ctx.lineWidth = 2;
-                        if (rect instanceof Rect) {
-                            ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-                        } else {
-                            ctx.strokeRect(rect[0], rect[1], rect[2], rect[3]);
-                        }
-                    },
-                    line: (start, end, color) => {
-                        ctx.strokeStyle = color;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(start[0], start[1]);
-                        ctx.lineTo(end[0], end[1]);
-                        ctx.stroke();
-                    },
-                    text: (text, pos, options = {}) => {
-                        const { fontsize = 24, color = 'white', center = false } = options;
-                        ctx.fillStyle = color;
-                        ctx.font = `${fontsize}px Inter, sans-serif`;
-                        ctx.textAlign = center ? 'center' : 'left';
-                        ctx.textBaseline = 'top';
-                        ctx.fillText(text, pos[0], pos[1]);
-                    }
-                },
-                blit: (image, pos) => {
-                    if (importedAssets[image]) {
-                        ctx.drawImage(importedAssets[image], pos[0], pos[1]);
-                    }
-                }
-            };
-
-            class Rect {
-                constructor(x, y, width, height) {
-                    this.x = x;
-                    this.y = y;
-                    this.width = width;
-                    this.height = height;
-                }
-            }
-
-            class Actor {
-                constructor(imageName, pos = [0, 0]) {
-                    this.image = imageName;
-                    this.x = pos[0];
-                    this.y = pos[1];
-                    this._img = importedAssets[imageName];
-                }
-
-                draw() {
-                    if (this._img) {
-                        ctx.drawImage(this._img, this.x - this._img.width/2, this.y - this._img.height/2);
-                    }
-                }
-            }
-
-            return { screen, Rect, Actor };
         }
 
         function stopGame() {
@@ -1556,32 +1186,193 @@ ${code}
                 cancelAnimationFrame(gameLoopId);
                 gameLoopId = null;
             }
+            document.getElementById('runGameBtn').style.display = 'inline-flex';
+            document.getElementById('stopBtn').style.display = 'none';
             document.getElementById('fpsCounter').textContent = 'FPS: 0';
         }
 
+        function transpileToJS(code) {
+            const lines = code.split('\n');
+            const result = [];
+            const indentStack = [0];
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                const originalLine = line;
+                
+                // Skip empty lines and comments
+                if (line.trim() === '' || line.trim().startsWith('#')) {
+                    result.push(line);
+                    continue;
+                }
+
+                // Calculate indentation
+                const indent = line.search(/\S/);
+                if (indent === -1) {
+                    result.push(line);
+                    continue;
+                }
+
+                // Close blocks when dedenting
+                while (indentStack.length > 1 && indent < indentStack[indentStack.length - 1]) {
+                    indentStack.pop();
+                    result.push(' '.repeat(indentStack[indentStack.length - 1]) + '}');
+                }
+
+                // Transform line
+                line = line
+                    // Function definitions
+                    .replace(/^(\s*)def\s+(\w+)\s*$$\s*$$\s*:/, '$1function $2() {')
+                    .replace(/^(\s*)def\s+(\w+)\s*$$([^)]*)$$\s*:/, '$1function $2($3) {')
+                    // Control flow
+                    .replace(/^(\s*)if\s+(.+?)\s*:/, '$1if ($2) {')
+                    .replace(/^(\s*)elif\s+(.+?)\s*:/, '$1} else if ($2) {')
+                    .replace(/^(\s*)else\s*:/, '$1} else {')
+                    .replace(/^(\s*)while\s+(.+?)\s*:/, '$1while ($2) {')
+                    // For loops
+                    .replace(/^(\s*)for\s+(\w+)\s+in\s+range\s*$$\s*(\d+)\s*$$\s*:/, '$1for (let $2 = 0; $2 < $3; $2++) {')
+                    .replace(/^(\s*)for\s+(\w+)\s+in\s+range\s*$$\s*(\d+)\s*,\s*(\d+)\s*$$\s*:/, '$1for (let $2 = $3; $2 < $4; $2++) {')
+                    // Python to JS
+                    .replace(/\bTrue\b/g, 'true')
+                    .replace(/\bFalse\b/g, 'false')
+                    .replace(/\bNone\b/g, 'null')
+                    .replace(/\band\b/g, '&&')
+                    .replace(/\bor\b/g, '||')
+                    .replace(/\bnot\s+/g, '!')
+                    // Global keyword (just remove it)
+                    .replace(/^\s*global\s+.+$/, '')
+                    // Print
+                    .replace(/print\s*$$(.+)$$/, 'print($1)');
+
+                result.push(line);
+
+                // Track block opening
+                if (originalLine.trim().endsWith(':') && !originalLine.trim().startsWith('#')) {
+                    indentStack.push(indent + 4);
+                }
+            }
+
+            // Close remaining blocks
+            while (indentStack.length > 1) {
+                indentStack.pop();
+                result.push('}');
+            }
+
+            return result.join('\n');
+        }
+
+        function createGameContext(ctx, WIDTH, HEIGHT) {
+            class Rect {
+                constructor(x, y, w, h) {
+                    this.x = x; this.y = y;
+                    this.width = w; this.height = h;
+                }
+                get left() { return this.x; }
+                get right() { return this.x + this.width; }
+                get top() { return this.y; }
+                get bottom() { return this.y + this.height; }
+                colliderect(other) {
+                    return this.left < other.right && this.right > other.left &&
+                           this.top < other.bottom && this.bottom > other.top;
+                }
+            }
+
+            class Actor {
+                constructor(imageName, pos) {
+                    this.image = imageName;
+                    this.pos = pos || [0, 0];
+                    this.x = this.pos[0];
+                    this.y = this.pos[1];
+                    this._img = assets[imageName];
+                }
+                draw() {
+                    if (this._img) {
+                        ctx.drawImage(this._img, this.x - this._img.width/2, this.y - this._img.height/2);
+                    } else {
+                        ctx.fillStyle = '#ff00ff';
+                        ctx.fillRect(this.x - 16, this.y - 16, 32, 32);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '10px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(this.image, this.x, this.y + 4);
+                    }
+                }
+            }
+
+            const screen = {
+                fill(color) {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                },
+                draw: {
+                    filled_circle(pos, radius, color) {
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(pos[0], pos[1], radius, 0, Math.PI * 2);
+                        ctx.fill();
+                    },
+                    circle(pos, radius, color) {
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(pos[0], pos[1], radius, 0, Math.PI * 2);
+                        ctx.stroke();
+                    },
+                    filled_rect(rect, color) {
+                        ctx.fillStyle = color;
+                        if (rect instanceof Rect) {
+                            ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+                        } else if (Array.isArray(rect)) {
+                            ctx.fillRect(rect[0], rect[1], rect[2], rect[3]);
+                        }
+                    },
+                    rect(rect, color) {
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 2;
+                        if (rect instanceof Rect) {
+                            ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+                        } else if (Array.isArray(rect)) {
+                            ctx.strokeRect(rect[0], rect[1], rect[2], rect[3]);
+                        }
+                    },
+                    line(start, end, color) {
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(start[0], start[1]);
+                        ctx.lineTo(end[0], end[1]);
+                        ctx.stroke();
+                    },
+                    text(text, pos, options = {}) {
+                        const fontsize = options.fontsize || 24;
+                        const color = options.color || 'white';
+                        ctx.fillStyle = color;
+                        ctx.font = `${fontsize}px sans-serif`;
+                        ctx.textAlign = 'left';
+                        ctx.textBaseline = 'top';
+                        ctx.fillText(String(text), pos[0], pos[1]);
+                    }
+                },
+                blit(imageName, pos) {
+                    const img = assets[imageName];
+                    if (img) ctx.drawImage(img, pos[0], pos[1]);
+                }
+            };
+
+            return { screen, Rect, Actor };
+        }
+
         // ========== AI Chat ==========
-        const GEMINI_API_KEY = 'AIzaSyBhJNUxbHHVih8mukT79OvETExbY3_j9rM'; // Replace with your actual API key
+        const GEMINI_API_KEY = 'AIzaSyBhJNUxbHHVih8mukT79OvETExbY3_j9rM';
         let chatHistory = [];
 
-        async function sendChatMessage() {
+        async function sendChat() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
             if (!message) return;
 
             input.value = '';
             addChatMessage(message, 'user');
-
-            // Show typing indicator
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'chat-message assistant';
-            typingDiv.innerHTML = `
-                <div class="chat-avatar">AI</div>
-                <div class="chat-bubble">
-                    <div class="typing-indicator"><span></span><span></span><span></span></div>
-                </div>
-            `;
-            document.getElementById('chatMessages').appendChild(typingDiv);
-            scrollChat();
 
             try {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -1590,75 +1381,50 @@ ${code}
                     body: JSON.stringify({
                         contents: [{
                             parts: [{
-                                text: `You are a helpful Python and Pygame programming assistant in PyStudio Pro IDE. 
-                                       Be concise and provide code examples when relevant. Use markdown for formatting.
-                                       
-                                       User: ${message}`
+                                text: `You are a helpful Python and Pygame Zero programming assistant. Be concise and provide code examples when helpful. Format code with triple backticks.
+
+User question: ${message}`
                             }]
                         }],
                         generationConfig: {
                             temperature: 0.7,
-                            maxOutputTokens: 1024
+                            maxOutputTokens: 2048
                         }
                     })
                 });
 
-                typingDiv.remove();
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.';
-                    addChatMessage(reply, 'assistant');
-                } else {
-                    addChatMessage('Sorry, there was an error connecting to the AI service.', 'assistant');
-                }
+                const data = await response.json();
+                const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.';
+                addChatMessage(reply, 'assistant');
+                
             } catch (error) {
-                typingDiv.remove();
-                addChatMessage('Sorry, there was an error: ' + error.message, 'assistant');
+                addChatMessage('Error: Could not connect to AI service.', 'assistant');
             }
         }
 
         function addChatMessage(text, role) {
-            const messagesDiv = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${role}`;
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'message ' + role;
             
-            const avatar = role === 'user' ? '👤' : 'AI';
-            let content = text;
+            // Format code blocks
+            let formatted = text
+                .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\n/g, '<br>');
             
-            if (role === 'assistant') {
-                // Parse markdown
-                content = marked.parse(text);
-            }
-            
-            messageDiv.innerHTML = `
-                <div class="chat-avatar">${avatar}</div>
-                <div class="chat-bubble">${content}</div>
-            `;
-            
-            messagesDiv.appendChild(messageDiv);
-            scrollChat();
+            div.innerHTML = formatted;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
         }
 
-        function scrollChat() {
-            const messages = document.getElementById('chatMessages');
-            messages.scrollTop = messages.scrollHeight;
-        }
-
-        // Chat input handlers
+        // Chat input Enter handler
         document.addEventListener('DOMContentLoaded', () => {
-            const chatInput = document.getElementById('chatInput');
-            chatInput.addEventListener('keydown', e => {
+            document.getElementById('chatInput').addEventListener('keydown', e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    sendChatMessage();
+                    sendChat();
                 }
-            });
-            
-            // Auto-resize chat input
-            chatInput.addEventListener('input', () => {
-                chatInput.style.height = 'auto';
-                chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
             });
         });
     </script>
