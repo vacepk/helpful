@@ -556,6 +556,40 @@
             background: #000;
         }
 
+        /* Add styles for interactive console input */
+        .console-input-container {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-color);
+            gap: 8px;
+        }
+
+        .console-prompt {
+            color: var(--accent-green);
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 13px;
+        }
+
+        .console-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .console-line.input-line {
+            color: var(--text-primary);
+        }
+
+        .console-line.input-line .user-input {
+            color: var(--accent-blue);
+        }
+
         /* Resizer */
         .resizer {
             height: 4px;
@@ -760,6 +794,11 @@
                     <div class="console-output" id="pythonOutput">
                         <div class="console-line info">Python environment ready. Click "Run" to execute your code.</div>
                     </div>
+                    <!-- Add interactive console input -->
+                    <div class="console-input-container" id="consoleInputContainer" style="display: none;">
+                        <span class="console-prompt">>>></span>
+                        <input type="text" class="console-input" id="consoleInput" placeholder="Enter input...">
+                    </div>
                 </div>
             </div>
 
@@ -800,15 +839,21 @@
                     </div>
                 </div>
                 <div class="resizer" id="pygameResizer"></div>
-                <div class="console-section" id="pygameConsole">
-                    <div class="console-header">
-                        <div class="console-tabs">
-                            <button class="console-tab active">Console</button>
+                <!-- Split console and canvas for pygame -->
+                <div style="display: flex; height: 250px;">
+                    <div class="console-section" id="pygameConsole" style="flex: 1; border-right: 1px solid var(--border-color); height: 100%;">
+                        <div class="console-header">
+                            <div class="console-tabs">
+                                <button class="console-tab active">Console</button>
+                            </div>
+                            <span style="font-size: 12px; color: var(--text-secondary);">Output</span>
                         </div>
-                        <span style="font-size: 12px; color: var(--text-secondary);">Game Output</span>
+                        <div class="console-output" id="pygameOutput">
+                            <div class="console-line info">Pygame Zero environment ready. Click "Run Game" to execute.</div>
+                        </div>
                     </div>
-                    <div class="console-output" id="pygameOutput">
-                        <div class="console-line info">Pygame Zero environment ready. Import assets and click "Run Game" to start.</div>
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; background: var(--bg-primary);">
+                        <canvas id="gameCanvas" width="400" height="300"></canvas>
                     </div>
                 </div>
             </div>
@@ -853,15 +898,15 @@
     
     <script>
         // ========== Global Variables ==========
-        let pyodide = null;
-        let pythonEditor = null;
-        let pygameEditor = null;
+        let pyodide;
+        let pyodideReady = false;
+        let pythonEditor, pygameEditor;
         let importedFiles = {};
         let gameRunning = false;
-        let pyodideReady = false; // Added flag to track Pyodide readiness
-        const GEMINI_API_KEY = 'AIzaSyBhJNUxbHHVih8mukT79OvETExbY3_j9rM';
+        let inputResolver = null;
+        let gameLoopId = null;
 
-        // ========== Initialize Application ==========
+        // ========== Initialize ==========
         async function initializeApp() {
             // Initialize CodeMirror editors
             initializeEditors();
@@ -872,8 +917,8 @@
             // Initialize resizers
             initializeResizers();
             
-            // Load Pyodide with retries
-            await loadPyodideWithRetry(); // Switched to retry logic
+            // Load Pyodide
+            await loadPython();
         }
 
         function initializeEditors() {
@@ -1103,53 +1148,62 @@ print("Keep the ball from falling below the paddle to score points!")
             }
         }
 
-        async function loadPyodideWithRetry(attempts = 3) {
-            const progressBar = document.getElementById('loadingProgress');
-            const loadingText = document.getElementById('loadingText');
-            
-            for (let attempt = 1; attempt <= attempts; attempt++) {
-                try {
-                    loadingText.textContent = `Loading Python runtime... (attempt ${attempt}/${attempts})`;
-                    progressBar.style.width = '10%';
-                    
-                    // Check if loadPyodide function exists
-                    if (typeof loadPyodide !== 'function') {
-                        throw new Error('Pyodide script not loaded');
-                    }
-                    
-                    progressBar.style.width = '20%';
-                    loadingText.textContent = 'Initializing Python environment...';
-                    
-                    pyodide = await loadPyodide({
-                        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/', // Updated URL
-                        fullStdLib: false // Optimization: Only load what's needed
-                    });
-                    
-                    progressBar.style.width = '50%';
-                    loadingText.textContent = 'Loading core packages...';
-                    
-                    // Load micropip first for package management
-                    await pyodide.loadPackage('micropip');
-                    
-                    progressBar.style.width = '70%';
-                    loadingText.textContent = 'Setting up environment...';
-                    
-                    // Setup stdout/stderr capture
-                    await pyodide.runPythonAsync(`
-import sys
-from io import StringIO
+        // Helper function to update loading text and progress bar
+        function updateLoadingText(text, progress) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingProgress').style.width = `${progress}%`;
+        }
 
+        // ========== Python Runtime Initialization ==========
+        async function loadPython(attempt = 1) {
+            const maxAttempts = 3;
+            
+            try {
+                updateLoadingText('Loading Python runtime...', 30);
+                
+                // Load Pyodide
+                pyodide = await loadPyodide({
+                    indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/'
+                });
+                
+                updateLoadingText('Installing packages...', 60);
+                
+                await pyodide.runPythonAsync(`
+import sys
+import io
+from js import inputResolver, document
+
+# Custom input function that works with browser
+def browser_input(prompt=""):
+    if prompt:
+        print(prompt, end="", flush=True)
+    
+    # Signal the browser that we need input
+    input_container = document.getElementById('consoleInputContainer')
+    input_field = document.getElementById('consoleInput')
+    
+    if input_container and input_field:
+        input_container.style.display = 'flex'
+        input_field.focus()
+    
+    # This will be resolved by JavaScript when user submits input
+    return None
+
+# Output capture
 class OutputCapture:
     def __init__(self):
         self.outputs = []
-    
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
+        
     def write(self, text):
-        if text:
-            self.outputs.append(str(text))
-    
+        if text and text.strip():
+            self.outputs.append(text)
+        self.original_stdout.write(text)
+        
     def flush(self):
-        pass
-    
+        self.original_stdout.flush()
+        
     def get_output(self):
         result = ''.join(self.outputs)
         self.outputs = []
@@ -1158,55 +1212,36 @@ class OutputCapture:
 output_capture = OutputCapture()
 sys.stdout = output_capture
 sys.stderr = output_capture
-                    `);
-                    
-                    progressBar.style.width = '90%';
-                    loadingText.textContent = 'Almost ready...';
-                    
-                    // Try to load numpy (optional, don't fail if it doesn't load)
-                    try {
-                        await pyodide.loadPackage('numpy');
-                    } catch (e) {
-                        console.log('[v0] NumPy loading skipped:', e.message);
-                    }
-                    
-                    progressBar.style.width = '100%';
-                    loadingText.textContent = 'Python ready!';
-                    pyodideReady = true; // Set ready flag
-                    
-                    // Hide loading overlay
+
+# Override built-in input
+__builtins__.input = browser_input
+                `);
+                
+                updateLoadingText('Python ready!', 100);
+                pyodideReady = true;
+                
+                // Update status
+                document.getElementById('pythonStatus').classList.add('ready');
+                document.getElementById('pythonStatusText').textContent = 'Python Ready';
+                
+                // Hide loading overlay
+                setTimeout(() => {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                }, 500);
+                
+            } catch (error) {
+                console.error('Python loading error:', error);
+                
+                if (attempt < maxAttempts) {
+                    updateLoadingText(`Retrying... (${attempt}/${maxAttempts})`, 20);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    return loadPython(attempt + 1);
+                } else {
+                    updateLoadingText('Python load failed - using fallback mode', 100);
+                    document.getElementById('pythonStatusText').textContent = 'Limited Mode';
                     setTimeout(() => {
                         document.getElementById('loadingOverlay').classList.add('hidden');
-                        document.getElementById('pythonStatus').classList.add('ready');
-                        document.getElementById('pythonStatusText').textContent = 'Python Ready';
-                    }, 300);
-                    
-                    return; // Success, exit the retry loop
-                    
-                } catch (error) {
-                    console.error(`[v0] Pyodide load attempt ${attempt} failed:`, error);
-                    
-                    if (attempt === attempts) {
-                        // Final attempt failed, show fallback UI
-                        loadingText.textContent = 'Python loading failed. Using fallback mode.';
-                        progressBar.style.width = '100%';
-                        progressBar.style.background = 'var(--accent-orange)';
-                        
-                        setTimeout(() => {
-                            document.getElementById('loadingOverlay').classList.add('hidden');
-                            document.getElementById('pythonStatus').style.background = 'var(--accent-orange)';
-                            document.getElementById('pythonStatusText').textContent = 'Fallback Mode';
-                            
-                            // Enable fallback mode
-                            pyodideReady = false; // Ensure ready flag is false
-                            appendToConsole('pythonOutput', '⚠ Python runtime could not load. Running in fallback mode.', 'warning');
-                            appendToConsole('pythonOutput', '  Code validation and syntax checking are still available.', 'info');
-                        }, 1000);
-                    } else {
-                        // Wait before retry
-                        loadingText.textContent = `Retrying in 2 seconds...`;
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                    }
+                    }, 1500);
                 }
             }
         }
@@ -1216,29 +1251,8 @@ sys.stderr = output_capture
             const code = pythonEditor.getValue();
             clearConsole();
             
-            // Handle fallback mode if Pyodide failed to load
             if (!pyodideReady || !pyodide) {
-                appendToConsole('pythonOutput', '▶ Running in fallback mode (syntax check only)...', 'warning');
-                try {
-                    // Basic syntax validation using Function constructor trick
-                    // This is a very rough check and won't catch all errors
-                    new Function(code.replace(/print\(/g, 'console.log(')); // Basic substitution for demo
-                    appendToConsole('pythonOutput', '✓ No obvious syntax errors detected', 'success');
-                    appendToConsole('pythonOutput', '', '');
-                    // Simulate some output for demo purposes
-                    code.split('\n').forEach(line => {
-                        const printMatch = line.match(/print\s*$$\s*["']([^"']+)["']\s*$$/);
-                        if (printMatch) {
-                            appendToConsole('pythonOutput', printMatch[1], '');
-                        }
-                        const printFMatch = line.match(/print\s*$$\s*f["']([^"']+)["']\s*$$/);
-                        if (printFMatch) {
-                            appendToConsole('pythonOutput', printFMatch[1].replace(/\{[^}]+\}/g, '[value]'), ''); // Placeholder for f-string vars
-                        }
-                    });
-                } catch (e) {
-                    appendToConsole('pythonOutput', '✗ Syntax error detected: ' + e.message, 'error');
-                }
+                appendToConsole('pythonOutput', '⚠ Python runtime not available', 'warning');
                 return;
             }
 
@@ -1262,9 +1276,9 @@ sys.stderr = output_capture
                     });
                 }
                 
-                // Only display result if it's not None (Pyodide can return None for successful execution)
+                // Show result if it's not None
                 if (result !== undefined && result !== null && String(result) !== 'None') {
-                    appendToConsole('pythonOutput', `→ ${result}`, 'success');
+                    appendToConsole('pythonOutput', String(result), 'success');
                 }
                 
                 appendToConsole('pythonOutput', '✓ Execution completed', 'success');
@@ -1275,67 +1289,304 @@ sys.stderr = output_capture
             }
         }
 
+        document.addEventListener('DOMContentLoaded', () => {
+            const consoleInput = document.getElementById('consoleInput');
+            if (consoleInput) {
+                consoleInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const value = consoleInput.value;
+                        appendToConsole('pythonOutput', `>>> ${value}`, 'input-line');
+                        
+                        if (inputResolver) {
+                            inputResolver(value);
+                            inputResolver = null;
+                        }
+                        
+                        consoleInput.value = '';
+                        document.getElementById('consoleInputContainer').style.display = 'none';
+                    }
+                });
+            }
+        });
+
         // ========== Pygame Zero Execution ==========
         async function runPygameCode() {
             const code = pygameEditor.getValue();
             clearPygameConsole();
             
-            // Fallback mode for Pygame Zero
             if (!pyodideReady || !pyodide) {
-                appendToConsole('pygameOutput', '▶ Running in fallback mode (validation only)...', 'warning');
-                appendToConsole('pygameOutput', '✓ Code structure looks valid', 'success');
-                appendToConsole('pygameOutput', 'ℹ Full Pygame execution requires Python runtime.', 'info');
-                
-                // Extract and show game config for user feedback
+                appendToConsole('pygameOutput', '⚠ Python runtime not available', 'warning');
+                return;
+            }
+
+            appendToConsole('pygameOutput', '▶ Starting Pygame Zero game...', 'info');
+
+            try {
+                // Stop previous game if running
+                if (gameLoopId) {
+                    cancelAnimationFrame(gameLoopId);
+                    gameLoopId = null;
+                }
+                gameRunning = false;
+
+                await pyodide.runPythonAsync(`
+import js
+import math
+from js import document, console as js_console
+
+# Get canvas and context
+canvas = document.getElementById('gameCanvas')
+ctx = canvas.getContext('2d')
+
+# Game state
+class GameState:
+    WIDTH = 800
+    HEIGHT = 600
+    TITLE = "Pygame Zero Game"
+    
+game_state = GameState()
+
+# Actor class for sprites
+class Actor:
+    def __init__(self, image=None, pos=(0, 0), anchor=('center', 'center')):
+        self.image = image
+        self._x = pos[0]
+        self._y = pos[1]
+        self.anchor = anchor
+        self.width = 50
+        self.height = 50
+        
+    @property
+    def x(self):
+        return self._x
+    
+    @x.setter
+    def x(self, value):
+        self._x = value
+        
+    @property
+    def y(self):
+        return self._y
+    
+    @y.setter
+    def y(self, value):
+        self._y = value
+        
+    @property
+    def pos(self):
+        return (self._x, self._y)
+    
+    @pos.setter
+    def pos(self, value):
+        self._x, self._y = value
+
+# Keyboard state
+class Keyboard:
+    def __init__(self):
+        self.pressed_keys = set()
+        
+keyboard = Keyboard()
+
+# Mouse state  
+class Mouse:
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+        
+mouse = Mouse()
+
+# Screen drawing functions
+class Screen:
+    def __init__(self):
+        self.width = game_state.WIDTH
+        self.height = game_state.HEIGHT
+        
+    def fill(self, color):
+        if isinstance(color, str):
+            ctx.fillStyle = color
+        elif isinstance(color, tuple):
+            ctx.fillStyle = f'rgb({color[0]}, {color[1]}, {color[2]})'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+        
+    def draw_text(self, text, pos, color='white', fontsize=30):
+        if isinstance(color, tuple):
+            color = f'rgb({color[0]}, {color[1]}, {color[2]})'
+        ctx.fillStyle = color
+        ctx.font = f'{fontsize}px Arial'
+        ctx.fillText(str(text), pos[0], pos[1])
+        
+    def draw_filled_rect(self, rect, color):
+        if isinstance(color, tuple):
+            color = f'rgb({color[0]}, {color[1]}, {color[2]})'
+        ctx.fillStyle = color
+        ctx.fillRect(rect[0], rect[1], rect[2], rect[3])
+        
+    def draw_rect(self, rect, color):
+        if isinstance(color, tuple):
+            color = f'rgb({color[0]}, {color[1]}, {color[2]})'
+        ctx.strokeStyle = color
+        ctx.strokeRect(rect[0], rect[1], rect[2], rect[3])
+        
+    def draw_circle(self, pos, radius, color):
+        if isinstance(color, tuple):
+            color = f'rgb({color[0]}, {color[1]}, {color[2]})'
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.arc(pos[0], pos[1], radius, 0, 2 * math.pi)
+        ctx.fill()
+        
+    def draw_line(self, start, end, color, width=1):
+        if isinstance(color, tuple):
+            color = f'rgb({color[0]}, {color[1]}, {color[2]})'
+        ctx.strokeStyle = color
+        ctx.lineWidth = width
+        ctx.beginPath()
+        ctx.moveTo(start[0], start[1])
+        ctx.lineTo(end[0], end[1])
+        ctx.stroke()
+
+screen = Screen()
+
+# Clock for timing
+class Clock:
+    def __init__(self):
+        self.dt = 0
+        
+clock = Clock()
+
+# Scheduled functions
+scheduled_functions = []
+
+def schedule(func, delay):
+    scheduled_functions.append({'func': func, 'delay': delay * 1000, 'time': 0})
+    
+def schedule_interval(func, interval):
+    scheduled_functions.append({'func': func, 'interval': interval * 1000, 'time': 0})
+
+# Placeholder for sounds and music (would need Web Audio API)
+class Sounds:
+    def __getattr__(self, name):
+        class DummySound:
+            def play(self): 
+                js_console.log(f'Playing sound: {name}')
+        return DummySound()
+        
+sounds = Sounds()
+
+class Music:
+    @staticmethod
+    def play(name):
+        js_console.log(f'Playing music: {name}')
+    
+    @staticmethod
+    def stop():
+        pass
+        
+music = Music()
+
+# User game functions
+user_draw = None
+user_update = None
+
+def set_draw_function(func):
+    global user_draw
+    user_draw = func
+    
+def set_update_function(func):
+    global user_update
+    user_update = func
+                `);
+
+                // Parse and set game configuration
                 const widthMatch = code.match(/WIDTH\s*=\s*(\d+)/);
                 const heightMatch = code.match(/HEIGHT\s*=\s*(\d+)/);
                 const titleMatch = code.match(/TITLE\s*=\s*["']([^"']+)["']/);
                 
-                if (widthMatch || heightMatch || titleMatch) {
-                    appendToConsole('pygameOutput', '', ''); // Add a blank line for spacing
-                    appendToConsole('pygameOutput', '📋 Detected game configuration:', 'info');
-                    if (titleMatch) appendToConsole('pygameOutput', `   Title: ${titleMatch[1]}`, '');
-                    if (widthMatch) appendToConsole('pygameOutput', `   Width: ${widthMatch[1]}px`, '');
-                    if (heightMatch) appendToConsole('pygameOutput', `   Height: ${heightMatch[1]}px`, '');
+                if (widthMatch) {
+                    const width = parseInt(widthMatch[1]);
+                    await pyodide.runPythonAsync(`game_state.WIDTH = ${width}; canvas.width = ${width}; screen.width = ${width}`);
                 }
-                return;
-            }
-
-            appendToConsole('pygameOutput', '▶ Running Pygame Zero code...', 'info');
-
-            try {
-                // Clear previous output
-                await pyodide.runPythonAsync('output_capture.outputs = []');
-                
-                // Run the code
-                // Note: Actual Pygame rendering would need a specific setup (e.g., canvas element)
-                // This primarily validates the Python code structure and imports.
-                await pyodide.runPythonAsync(code);
-                
-                // Get captured output
-                const output = await pyodide.runPythonAsync('output_capture.get_output()');
-                
-                if (output) {
-                    output.split('\n').forEach(line => {
-                        if (line.trim()) {
-                            appendToConsole('pygameOutput', line, '');
-                        }
-                    });
+                if (heightMatch) {
+                    const height = parseInt(heightMatch[1]);
+                    await pyodide.runPythonAsync(`game_state.HEIGHT = ${height}; canvas.height = ${height}; screen.height = ${height}`);
+                }
+                if (titleMatch) {
+                    await pyodide.runPythonAsync(`game_state.TITLE = "${titleMatch[1]}"`);
+                    appendToConsole('pygameOutput', `📋 ${titleMatch[1]}`, 'info');
                 }
                 
-                appendToConsole('pygameOutput', '✓ Code validated successfully', 'success');
-                appendToConsole('pygameOutput', 'ℹ Note: Full Pygame rendering requires a desktop environment.', 'info');
-                appendToConsole('pygameOutput', 'The code structure and logic have been verified.', 'info');
+                // Execute user code to define draw() and update()
+                const processedCode = code
+                    .replace(/^WIDTH\s*=.*$/m, '')
+                    .replace(/^HEIGHT\s*=.*$/m, '')
+                    .replace(/^TITLE\s*=.*$/m, '')
+                    .replace(/^def draw$$$$:/m, 'def draw():\n    pass\nset_draw_function(draw)\ndef user_draw_impl():')
+                    .replace(/^def update$$$$:/m, 'def update():\n    pass\nset_update_function(update)\ndef user_update_impl():')
+                    + '\nif user_draw is None and "user_draw_impl" in dir(): set_draw_function(user_draw_impl)'
+                    + '\nif user_update is None and "user_update_impl" in dir(): set_update_function(user_update_impl)';
+                
+                await pyodide.runPythonAsync(processedCode);
+                
+                // Start game loop
+                gameRunning = true;
+                document.getElementById('stopGameBtn').style.display = 'inline-flex';
+                appendToConsole('pygameOutput', '✓ Game running!', 'success');
+                
+                let lastTime = performance.now();
+                
+                async function gameLoop(currentTime) {
+                    if (!gameRunning) return;
+                    
+                    const deltaTime = (currentTime - lastTime) / 1000;
+                    lastTime = currentTime;
+                    
+                    try {
+                        // Update
+                        await pyodide.runPythonAsync(`
+if user_update:
+    user_update()
+                        `);
+                        
+                        // Draw
+                        await pyodide.runPythonAsync(`
+if user_draw:
+    user_draw()
+                        `);
+                    } catch (error) {
+                        console.error('Game loop error:', error);
+                        gameRunning = false;
+                        appendToConsole('pygameOutput', `✗ Game error: ${error.message}`, 'error');
+                        document.getElementById('stopGameBtn').style.display = 'none';
+                        return;
+                    }
+                    
+                    gameLoopId = requestAnimationFrame(gameLoop);
+                }
+                
+                gameLoopId = requestAnimationFrame(gameLoop);
                 
             } catch (error) {
                 const errorMsg = error.message || String(error);
                 appendToConsole('pygameOutput', `✗ Error: ${errorMsg}`, 'error');
+                gameRunning = false;
+                document.getElementById('stopGameBtn').style.display = 'none';
             }
         }
 
         function stopGame() {
             gameRunning = false;
+            if (gameLoopId) {
+                cancelAnimationFrame(gameLoopId);
+                gameLoopId = null;
+            }
             document.getElementById('stopGameBtn').style.display = 'none';
+            
+            // Clear canvas
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
             appendToConsole('pygameOutput', '⏹ Game stopped', 'warning');
         }
 
@@ -1344,7 +1595,13 @@ sys.stderr = output_capture
             const console = document.getElementById(consoleId);
             const line = document.createElement('div');
             line.className = `console-line ${type}`;
-            line.textContent = message;
+            // For input lines, add a specific class to style the user input part
+            if (type === 'input-line') {
+                const parts = message.split('>>> ');
+                line.innerHTML = `>>> <span class="user-input">${parts[1]}</span>`;
+            } else {
+                line.textContent = message;
+            }
             console.appendChild(line);
             console.scrollTop = console.scrollHeight; // Auto-scroll to bottom
         }
@@ -1514,6 +1771,7 @@ sys.stderr = output_capture
         }
 
         async function callGeminiAPI(message) {
+            const GEMINI_API_KEY = 'AIzaSyBhJNUxbHHVih8mukT79OvETExbY3_j9rM'; // Ensure this key is handled securely in a real app
             const systemPrompt = `You are PyStudio Pro AI Assistant, an expert programming assistant specialized in:
 - Python programming (all skill levels)
 - Pygame and Pygame Zero game development
